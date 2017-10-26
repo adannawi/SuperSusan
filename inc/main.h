@@ -64,9 +64,15 @@
 #define SPI_MOSI_GPIO_Port GPIOA
 #define LD0_SPI5_CLK_Pin GPIO_PIN_0
 #define LD0_SPI5_CLK_GPIO_Port GPIOB
+#define WIFI_IRQ_Pin GPIO_PIN_10
+#define WIFI_IRQ_GPIO_Port GPIOB
+#define WIFI_IRQ_EXTI_IRQn EXTI15_10_IRQn
+#define shark_Pin GPIO_PIN_10
+#define shark_GPIO_Port GPIOA
+#define alligator_Pin GPIO_PIN_11
+#define alligator_GPIO_Port GPIOA
 #define LD0_SPI5_MISO_Pin GPIO_PIN_12
 #define LD0_SPI5_MISO_GPIO_Port GPIOA
-
 
 /* USER CODE BEGIN Private defines */
 #define CURMOV  0xFE
@@ -82,7 +88,7 @@ void send_i(char x);
 void send_byte(char x);
 void lcdwait();
 void shiftout(char x);
-
+extern int irqFlag;
 /* USER CODE END Private defines */
 
 void _Error_Handler(char *, int);

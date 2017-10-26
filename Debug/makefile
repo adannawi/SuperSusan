@@ -29,13 +29,13 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: STM32\ Test\ 2.elf
+all: SuperSusan.elf
 
 # Tool invocations
-STM32\ Test\ 2.elf: $(OBJS) $(USER_OBJS) C:\Users\NexusJr\eclipse-workspace\STM32\ Test\ 2\LinkerScript.ld
+SuperSusan.elf: $(OBJS) $(USER_OBJS) C:\Users\NexusJr\eclipse-workspace\SuperSusan\LinkerScript.ld
 	@echo 'Building target: $@'
 	@echo 'Invoking: MCU GCC Linker'
-	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T"C:\Users\NexusJr\eclipse-workspace\STM32 Test 2\LinkerScript.ld" -Wl,-Map=output.map -Wl,--gc-sections -lm -o "STM32 Test 2.elf" @"objects.list" $(USER_OBJS) $(LIBS)
+	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T"C:\Users\NexusJr\eclipse-workspace\SuperSusan\LinkerScript.ld" -Wl,-Map=output.map -Wl,--gc-sections -lm -o "SuperSusan.elf" @"objects.list" $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
@@ -47,8 +47,8 @@ clean:
 
 post-build:
 	-@echo 'Generating binary and Printing size information:'
-	arm-none-eabi-objcopy -O binary "STM32 Test 2.elf" "STM32 Test 2.bin"
-	arm-none-eabi-size "STM32 Test 2.elf"
+	arm-none-eabi-objcopy -O binary "SuperSusan.elf" "SuperSusan.bin"
+	arm-none-eabi-size "SuperSusan.elf"
 	-@echo ' '
 
 .PHONY: all clean dependents

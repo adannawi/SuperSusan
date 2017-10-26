@@ -38,7 +38,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f4xx_hal.h"
-#include <inttypes.h>
+
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -71,6 +71,7 @@ uint32_t driver_LD5(void);
 /* USER CODE BEGIN 0 */
 uint32_t dataBuffer5;
 char wbuffer[17];
+int irqFlag = 0;
 /* USER CODE END 0 */
 
 int main(void)
@@ -99,7 +100,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI1_Init();
-  //MX_SPI5_Init();
+  MX_SPI5_Init();
   MX_TIM9_Init();
 
   /* USER CODE BEGIN 2 */
@@ -112,10 +113,7 @@ int main(void)
   send_i(LCDCLR);
   lcdwait();
   /* USER CODE END 2 */
-  int 	i 		= 0;
 
-  wbuffer[0] = "0";
-  wbuffer[1] = "x";
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   uint32_t weightVal = 0;
@@ -125,52 +123,24 @@ int main(void)
 	  //HAL_GPIO_TogglePin(SANITY_LIGHT_GPIO_Port, SANITY_LIGHT_Pin);
 	  send_i(LCDCLR);
 	  chgline(LINE1);
-	  lcdprint("load cell reads:");
+	  //lcdprint("load cell reads:");
+	  //chgline(LINE2);
+	  //lcdprint(wbuffer);
+	  lcdprint("IRQ Status: ");
 	  chgline(LINE2);
 	  lcdprint(wbuffer);
 	  //str[0] += i++;
 	  //HAL_SPI_Receive(&hspi5, &weightVal, 0x0003u, 200); // write 3 character
 	  //HAL_SPI_Receive(hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
-	  weightVal = driver_LD5();
+	  weightVal = irqFlag; //driver_LD5();
 	  convertW(weightVal);
   }
   /* USER CODE END WHILE */
+
   /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
 
-}
-
-void convertW(int32_t wVal) {
-	int i, digit;
-	char c;
-	int cbuf = wVal;
-	for(i = 0; i < 6; ++i) {
-		digit = cbuf % 16;
-		switch(digit) {
-			case 0: c = '0'; break;
-			case 1: c = '1'; break;
-			case 2: c = '2'; break;
-			case 3: c = '3'; break;
-			case 4: c = '4'; break;
-			case 5: c = '5'; break;
-			case 6: c = '6'; break;
-			case 7: c = '7'; break;
-			case 8: c = '8'; break;
-			case 9: c = '9'; break;
-			case 0xA: c = 'A'; break;
-			case 0xB: c = 'B'; break;
-			case 0xC: c = 'C'; break;
-			case 0xD: c = 'D'; break;
-			case 0xE: c = 'E'; break;
-			case 0xF: c = 'F'; break;
-			default: 'X';
-		}
-		wbuffer[2+5-i] = c;
-		cbuf = cbuf >> 4;
-	}
-	wbuffer[0] = '0';
-	wbuffer[1] = 'x';
 }
 
 /** System Clock Configuration
@@ -260,7 +230,7 @@ static void MX_SPI5_Init(void)
   hspi5.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi5.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi5.Init.NSS = SPI_NSS_SOFT;
-  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi5.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
   hspi5.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi5.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi5.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -341,21 +311,57 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-
-  GPIO_InitStruct.Pin = LD0_SPI5_CLK_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  /*Configure GPIO pin : WIFI_IRQ_Pin */
+  GPIO_InitStruct.Pin = WIFI_IRQ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(WIFI_IRQ_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins :*/
-  GPIO_InitStruct.Pin  = LD0_SPI5_MISO_Pin;
+  /*Configure GPIO pins : shark_Pin alligator_Pin */
+  GPIO_InitStruct.Pin = shark_Pin|alligator_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
+void convertW(int32_t wVal) {
+	int i, digit;
+	char c;
+	int cbuf = wVal;
+	for(i = 0; i < 6; ++i) {
+		digit = cbuf % 16;
+		switch(digit) {
+			case 0: c = '0'; break;
+			case 1: c = '1'; break;
+			case 2: c = '2'; break;
+			case 3: c = '3'; break;
+			case 4: c = '4'; break;
+			case 5: c = '5'; break;
+			case 6: c = '6'; break;
+			case 7: c = '7'; break;
+			case 8: c = '8'; break;
+			case 9: c = '9'; break;
+			case 0xA: c = 'A'; break;
+			case 0xB: c = 'B'; break;
+			case 0xC: c = 'C'; break;
+			case 0xD: c = 'D'; break;
+			case 0xE: c = 'E'; break;
+			case 0xF: c = 'F'; break;
+			default: 'X';
+		}
+		wbuffer[2+5-i] = c;
+		cbuf = cbuf >> 4;
+	}
+	wbuffer[0] = '0';
+	wbuffer[1] = 'x';
+}
+
 void clock5() {
 	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
 						LD0_SPI5_CLK_Pin,
@@ -530,7 +536,6 @@ void lcdprint(char str[]){
     }
 }
 
-/* USER CODE END 4 */
 /* USER CODE END 4 */
 
 /**
