@@ -83,11 +83,17 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+uint8_t SPI_Wifi_Communicate(char * data);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
+uint8_t SPI_Wifi_Communicate(char * data){
+	uint8_t msg;
+	// Use SPI to send "Hello, Slave!" to the Wifi module
+	HAL_SPI_Transmit(&hspi1, "Hello, Slave!", 13, 100);
+	HAL_SPI_Receive(&hspi1, msg, 14, 100);
+	return msg;
+}
 /* USER CODE END 0 */
 
 int main(void)
@@ -131,15 +137,15 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  int flag = 0;
   while (1)
   {
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
-
-  }
+  SPI_Wifi_Communicate("Hello, Slave!");
   /* USER CODE END 3 */
-
+  }
 }
 
 /** System Clock Configuration
@@ -220,7 +226,7 @@ static void MX_ADC1_Init(void)
 
     /**Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
     */
-  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
@@ -251,6 +257,8 @@ static void MX_SPI1_Init(void)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
+  __SPI1_CLK_ENABLE();
+  __HAL_SPI_ENABLE(&hspi1);
 
 }
 
@@ -530,61 +538,65 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, F_NRD_Pin|F_NRST_Pin|F_NCS1_Pin|F_A0_Pin 
-                          |F_NCS2_Pin|F_NWR_Pin|F_RCLK_Pin|IR_START1_Pin 
-                          |IR_START0_Pin|MTR_EN1_2_Pin|MTR_EN3_4_Pin|NFC0_SEL_Pin 
-                          |NFC1_IRQ_Pin|NFC1_SEL_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, F_NCS2_Pin|F_CS_DP_Pin|IR_START0_Pin|IR_START1_Pin 
+                          |NFC_SEL_NFC0_Pin|NFC_SEL_NFC1_Pin|MTR_EN1_2_Pin|MTR_EN3_4_Pin 
+                          |F_RCLK_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, F_CS_DP_Pin|WIFI_CS_Pin|VLT_DIR_Pin|F_ROTA_Pin 
-                          |F_ROTSW_Pin|F_ROTB_Pin|F_BACK_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, WIFI_CS_Pin|WIFI_IRQ_Pin|F_NWR_Pin|F_NRD_Pin 
+                          |F_NCS1_Pin|F_A0_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(NFC0_IRQ_GPIO_Port, NFC0_IRQ_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(F_NRST_GPIO_Port, F_NRST_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : F_NRD_Pin F_NRST_Pin F_NCS1_Pin F_A0_Pin 
-                           F_NCS2_Pin F_NWR_Pin F_RCLK_Pin IR_START1_Pin 
-                           IR_START0_Pin MTR_EN1_2_Pin MTR_EN3_4_Pin NFC0_SEL_Pin 
-                           NFC1_IRQ_Pin NFC1_SEL_Pin */
-  GPIO_InitStruct.Pin = F_NRD_Pin|F_NRST_Pin|F_NCS1_Pin|F_A0_Pin 
-                          |F_NCS2_Pin|F_NWR_Pin|F_RCLK_Pin|IR_START1_Pin 
-                          |IR_START0_Pin|MTR_EN1_2_Pin|MTR_EN3_4_Pin|NFC0_SEL_Pin 
-                          |NFC1_IRQ_Pin|NFC1_SEL_Pin;
+  /*Configure GPIO pins : F_NCS2_Pin F_CS_DP_Pin IR_START0_Pin IR_START1_Pin 
+                           NFC_SEL_NFC0_Pin NFC_SEL_NFC1_Pin MTR_EN1_2_Pin MTR_EN3_4_Pin 
+                           F_RCLK_Pin */
+  GPIO_InitStruct.Pin = F_NCS2_Pin|F_CS_DP_Pin|IR_START0_Pin|IR_START1_Pin 
+                          |NFC_SEL_NFC0_Pin|NFC_SEL_NFC1_Pin|MTR_EN1_2_Pin|MTR_EN3_4_Pin 
+                          |F_RCLK_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : F_CS_DP_Pin WIFI_CS_Pin VLT_DIR_Pin F_ROTA_Pin 
-                           F_ROTSW_Pin F_ROTB_Pin F_BACK_Pin */
-  GPIO_InitStruct.Pin = F_CS_DP_Pin|WIFI_CS_Pin|VLT_DIR_Pin|F_ROTA_Pin 
-                          |F_ROTSW_Pin|F_ROTB_Pin|F_BACK_Pin;
+  /*Configure GPIO pin : NFC_IRQ_NFC1_Pin */
+  GPIO_InitStruct.Pin = NFC_IRQ_NFC1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(NFC_IRQ_NFC1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : NFC_IRQ_NFC0_Pin F_BUTTON_Pin F_ROTSW_Pin */
+  GPIO_InitStruct.Pin = NFC_IRQ_NFC0_Pin|F_BUTTON_Pin|F_ROTSW_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : WIFI_CS_Pin WIFI_IRQ_Pin F_NWR_Pin F_NRD_Pin 
+                           F_NCS1_Pin F_A0_Pin */
+  GPIO_InitStruct.Pin = WIFI_CS_Pin|WIFI_IRQ_Pin|F_NWR_Pin|F_NRD_Pin 
+                          |F_NCS1_Pin|F_A0_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : WIFI_IRQ_Pin */
-  GPIO_InitStruct.Pin = WIFI_IRQ_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pins : F_ROTB_Pin F_ROTA_Pin */
+  GPIO_InitStruct.Pin = F_ROTB_Pin|F_ROTA_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(WIFI_IRQ_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : NFC0_IRQ_Pin */
-  GPIO_InitStruct.Pin = NFC0_IRQ_Pin;
+  /*Configure GPIO pin : F_NRST_Pin */
+  GPIO_InitStruct.Pin = F_NRST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(NFC0_IRQ_GPIO_Port, &GPIO_InitStruct);
-
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  HAL_GPIO_Init(F_NRST_GPIO_Port, &GPIO_InitStruct);
 
 }
 
