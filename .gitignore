@@ -1,0 +1,6 @@
+#Ignore everything
+*
+# Except for src, inc folders and the .gitignore file
+!src/
+!inc/
+!.gitignore
