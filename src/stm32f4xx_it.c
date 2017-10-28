@@ -31,9 +31,9 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
+#include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
 
 /* USER CODE BEGIN 0 */
 /* USER CODE END 0 */

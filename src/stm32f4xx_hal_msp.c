@@ -37,8 +37,8 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
 #include "main.h"
+#include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
 
 extern void _Error_Handler(char *, int);
 /* USER CODE BEGIN 0 */

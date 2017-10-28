@@ -37,7 +37,8 @@
   */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "stm32f4xx_hal.h"
+
+#include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -119,7 +120,7 @@ int main(void)
   uint32_t weightVal = 0;
   while (1)
   {
-	  HAL_Delay(1000);
+	  HAL_Delay(500);
 	  //HAL_GPIO_TogglePin(SANITY_LIGHT_GPIO_Port, SANITY_LIGHT_Pin);
 	  send_i(LCDCLR);
 	  chgline(LINE1);

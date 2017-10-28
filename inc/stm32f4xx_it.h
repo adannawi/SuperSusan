@@ -40,7 +40,7 @@
 #endif 
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx_hal.h"
+#include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
 #include "main.h"
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

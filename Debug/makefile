@@ -8,10 +8,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include startup/subdir.mk
 -include src/subdir.mk
--include Utilities/STM32F4xx-Nucleo/subdir.mk
--include HAL_Driver/Src/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -32,10 +29,10 @@ endif
 all: SuperSusan.elf
 
 # Tool invocations
-SuperSusan.elf: $(OBJS) $(USER_OBJS) C:\Users\NexusJr\eclipse-workspace\SuperSusan\LinkerScript.ld
+SuperSusan.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: MCU GCC Linker'
-	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T"C:\Users\NexusJr\eclipse-workspace\SuperSusan\LinkerScript.ld" -Wl,-Map=output.map -Wl,--gc-sections -lm -o "SuperSusan.elf" @"objects.list" $(USER_OBJS) $(LIBS)
+	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -Wl,-Map=output.map -Wl,--gc-sections -lm -o "SuperSusan.elf" @"objects.list" $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
