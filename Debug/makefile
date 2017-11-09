@@ -32,10 +32,10 @@ endif
 all: STM32\ Test\ 2.elf
 
 # Tool invocations
-STM32\ Test\ 2.elf: $(OBJS) $(USER_OBJS) C:\Users\NexusJr\eclipse-workspace\STM32\ Test\ 2\LinkerScript.ld
+STM32\ Test\ 2.elf: $(OBJS) $(USER_OBJS) C:\Users\csome\Documents\GitHub\SuperSusan\LinkerScript.ld
 	@echo 'Building target: $@'
 	@echo 'Invoking: MCU GCC Linker'
-	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T"C:\Users\NexusJr\eclipse-workspace\STM32 Test 2\LinkerScript.ld" -Wl,-Map=output.map -Wl,--gc-sections -lm -o "STM32 Test 2.elf" @"objects.list" $(USER_OBJS) $(LIBS)
+	arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -T"C:\Users\csome\Documents\GitHub\SuperSusan\LinkerScript.ld" -Wl,-Map=output.map -Wl,--gc-sections -o "STM32 Test 2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -lm
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build

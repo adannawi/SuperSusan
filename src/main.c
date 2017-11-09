@@ -52,25 +52,81 @@ TIM_HandleTypeDef htim9;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
+// weighingAlgorithm definitions
+#define		BASE_THRESH1			300
+#define		BASE_THRESH2			200
+#define		ZERO_TRIGGER_COUNT 		20
+#define		NSENSORS 				2
+#define		NSTARTSAMPLES			8
+#define		NSAMPLESMATURE			64
+#define		WEIGHTDEBUG
+
+// weighingAlgorithm enumerations
+enum wstage_e {NEW, YOUTH, AGING, MATURE};
+enum sensorID {ONE=0, TWO=1, HEX1=2, HEX2=3};
+
+// weighingAlgorithm variables
+uint8_t		avgCount[NSENSORS] 				= {0};
+uint32_t	sum[NSENSORS] 					= {0};
+uint32_t 	avgWeight[NSENSORS]				= {0};
+uint32_t	avgGrams[NSENSORS]				= {0};
+int32_t		obsGrams[NSENSORS] 				= {0};
+uint32_t	obsWeight[NSENSORS]				= {0};
+uint8_t 	rezeroCount[NSENSORS]			= {0};
+uint8_t 	log2of_sampleCount[NSENSORS] 	= {0};
+int32_t		THRESHHOLD[NSENSORS]			= {0};
+int32_t		BASE_THRESH[NSENSORS]			= {BASE_THRESH1, BASE_THRESH2};
+enum wstage_e wstage[NSENSORS]				= {NEW, NEW};
+uint8_t		i1, i2;
+
+// weighingDrivers variables
+uint32_t dataBuffer2;
+uint32_t dataBuffer5;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_SPI2_Init(void);
 static void MX_SPI5_Init(void);
+static void MX_TIM11_Init(void);
 static void MX_TIM9_Init(void);
 
-/* USER CODE BEGIN PFP */
-/* Private function prototypes -----------------------------------------------*/
-void read5(void);
+// weighingAlgorithm function prototypes
+void weighingAlgorithm(enum sensorID SID);
+uint8_t roughLog2Lookup(uint32_t val);
+
+// weighingDrivers function prototypes
 void clock5(void);
+void clock2(void);
+void read5(void);
+void read2(void);
+uint32_t driver_LD2(void);
 uint32_t driver_LD5(void);
+
+
+/* USER CODE BEGIN PFP */
+
+/* Private function prototypes -----------------------------------------------*/
+void 		read5(void);
+void 		clock5(void);
+uint32_t 	driver_LD5(void);
+uint32_t 	convertGrams(uint32_t, uint32_t, enum sensorID);
+void 		convertG(int32_t, enum sensorID);
+void 		convertW(int32_t, enum sensorID);
+void 		debugWeight(enum sensorID s);
+void 		weightToLCD(enum sensorID first, enum sensorID second);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
 uint32_t dataBuffer5;
-char wbuffer[17];
+char wbuffer1[11] = {0};
+char wbuffer2[11] = {0};
+char gbuffer1[11] = {0};
+char gbuffer2[11] = {0};
+
+
 /* USER CODE END 0 */
 
 int main(void)
@@ -103,36 +159,75 @@ int main(void)
   MX_TIM9_Init();
 
   /* USER CODE BEGIN 2 */
+
   HAL_Delay(100);
-  HAL_GPIO_TogglePin(SANITY_LIGHT_GPIO_Port, SANITY_LIGHT_Pin);
-  //HAL_GPIO_WritePin(LCD_E_GPIO_Port, LCD_E_Pin, GPIO_PIN_SET);
+  HAL_GPIO_TogglePin(BONUS_GPIO_Port, BONUS_Pin);
+  HAL_GPIO_WritePin(LCD_E_GPIO_Port, LCD_E_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LCD_RW_GPIO_Port, LCD_RW_Pin, GPIO_PIN_RESET);
   send_i(LCDON);
+  HAL_Delay(1);
   send_i(TWOLINE);
+  HAL_Delay(1);
   send_i(LCDCLR);
+  HAL_Delay(1);
   lcdwait();
   /* USER CODE END 2 */
   int 	i 		= 0;
+  int 	pi		= 0;
+  wbuffer1[0] = '0';
+  wbuffer1[1] = 'x';
 
-  wbuffer[0] = "0";
-  wbuffer[1] = "x";
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t weightVal = 0;
+
+  send_i(LCDCLR);
+  lcdprint("zeroing weight..");
+  weighingAlgorithmInit();
+  //do {
+  //	  weighingAlgorithm(TWO);
+  //} while (wstage[TWO] == NEW);
+  //convertW(obsWeight[TWO], TWO);
+  //convertG(obsGrams[TWO], TWO);
+  //weightToLCD(HEX2, TWO)	;
+
+
+
+  HAL_GPIO_TogglePin(BONUS_GPIO_Port, BONUS_Pin);
   while (1)
   {
-	  HAL_Delay(1000);
-	  //HAL_GPIO_TogglePin(SANITY_LIGHT_GPIO_Port, SANITY_LIGHT_Pin);
-	  send_i(LCDCLR);
-	  chgline(LINE1);
-	  lcdprint("load cell reads:");
-	  chgline(LINE2);
-	  lcdprint(wbuffer);
-	  //str[0] += i++;
+	  //HAL_Delay(500);
+	  // output raw weight reading
+	  //send_i(LCDCLR);;
+	  //if(i == 0) {
+	  if(pi++ >= 5) {
+		  //weightToLCD(HEX1, ONE);
+		  weightToLCD(ONE, TWO);
+		  //weightToLCD(HEX2, TWO);
+		  pi = 0;
+	  }
+
+	  //} else i = 0;
+
+	  //if(wstage[TWO] == MATURE) {
+	  	//  i = 1;
+	  	  //HAL_Delay(2);
+	  //} else i = 0;
+
 	  //HAL_SPI_Receive(&hspi5, &weightVal, 0x0003u, 200); // write 3 character
-	  //HAL_SPI_Receive(hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
-	  weightVal = driver_LD5();
-	  convertW(weightVal);
+	  weighingAlgorithm(ONE);
+	  weighingAlgorithm(TWO);
+	  if(wstage[TWO] == YOUTH || wstage[ONE] == YOUTH)
+		  HAL_Delay(13);
+
+	  // averages the data
+	  convertW(obsWeight[ONE], ONE);
+	  convertG(obsGrams[ONE], ONE);
+	  //convertW(obsWeight[TWO], TWO);
+	  convertG(obsGrams[TWO], TWO);
+	  //weightToLCD(HEX2, TWO);
+	//#ifdef WEIGHTDEBUG
+		//HAL_Delay(500);
+	//#endif
   }
   /* USER CODE END WHILE */
   /* USER CODE BEGIN 3 */
@@ -141,10 +236,265 @@ int main(void)
 
 }
 
-void convertW(int32_t wVal) {
+/* ================================================================ *\
+ *
+ *	weighingAlgorithm:
+ *
+ *		decides whether a weight has changed on the platform and
+ *		creates a new zero if the ZERO_TRIGGER_COUNT is passed,
+ *		ie: the new weight rests above the THRESHHOLD for a certain
+ *		time. The Weighing algorrothm can be called for either
+ *		sensor by supplying the enum value ONE or TWO indicating
+ *		which of our sensors and thus which calibration data and
+ *		"SPI Port"s to use.
+ */
+//----------------------------------------------------------
+void weighingAlgorithmInit() {
+	// local variables
+	uint32_t sample1 = 0;
+	uint32_t sample2 = 0;
+	uint32_t timeOut = 0;
+	uint8_t wi;
+
+	// gather first sample for both sensors
+
+
+// borrow the debug led if defined
+	#ifdef WEIGHTDEBUG
+		HAL_GPIO_WritePin(BONUS_GPIO_Port, BONUS_Pin, GPIO_PIN_SET);
+	#endif
+
+	sum[ONE] = 0;
+	sum[TWO] = 0;
+
+	// measure 31 new samples to get a stable start
+	for(wi = 0; wi < NSTARTSAMPLES; ++wi) {
+		// sample sensor 1
+		do {		sample1 = driver_LD5();
+					HAL_Delay(1);
+		} while(	sample1 == 0);
+		sum[ONE] += sample1;
+		timeOut = 0;
+
+		// sample sensor 2
+		do { 		sample2 = driver_LD2();
+					HAL_Delay(1);
+		} while(	sample2 == 0);
+		sum[TWO] += sample2;
+		timeOut = 0;
+	}
+	HAL_Delay(4);
+	avgWeight[ONE] = sum[ONE] / (NSTARTSAMPLES);
+	avgWeight[TWO] = sum[TWO] / (NSTARTSAMPLES);
+	avgCount[ONE] = NSTARTSAMPLES;
+	avgCount[TWO] = NSTARTSAMPLES;
+
+	// borrow the debug led if defined
+	#ifdef WEIGHTDEBUG
+		HAL_GPIO_WritePin(BONUS_GPIO_Port, BONUS_Pin, GPIO_PIN_RESET);
+	#endif
+}
+
+/* ================================================================ *\
+ *
+ *	weighingAlgorithm:
+ *
+ *		decides whether a weight has changed on the platform and
+ *		creates a new zero if the ZERO_TRIGGER_COUNT is passed,
+ *		ie: the new weight rests above the THRESHHOLD for a certain
+ *		time. The Weighing algorrothm can be called for either
+ *		sensor by supplying the enum value ONE or TWO indicating
+ *		which of our sensors and thus which calibration data and
+ *		"SPI Port"s to use.
+ */
+//----------------------------------------------------------
+void weighingAlgorithm(enum sensorID SID) {
+	/*#ifdef WEIGHTDEBUG
+		if(	wstage[SID] == AGING) {
+			HAL_Delay(250);
+		}
+		else if( wstage[SID] == MATURE) {
+			HAL_Delay(500);
+		}
+	#endif*/
+
+
+	uint32_t sample = 0;
+	uint32_t timeOut = 0;
+
+	// fetch new wsample
+	if(SID == ONE)
+		do {		sample = driver_LD5();
+		} while(	sample == 0 && timeOut++ < 10000);
+	else if(SID == TWO)
+		do { 		sample = driver_LD2();
+		} while(	sample == 0 && timeOut++ < 10000);
+
+	obsWeight[SID] = sample;
+
+
+	// decide on course of action
+	//----------------------------------------------------------
+	if(wstage[SID] == NEW) { // weight is different => get new stable reading
+		// reset sum
+		sum[SID] 			= 0;
+		rezeroCount[SID] 	= 0;
+		avgCount[SID]		= 1;
+		sum[SID] 		    = obsWeight[SID];
+		wstage[SID] 		= YOUTH;
+	}
+
+	if(wstage[SID] != MATURE) {
+
+		// decide if we have collected enough samples
+		if(avgCount[SID] > NSAMPLESMATURE) {
+			wstage[SID] = MATURE;
+		} else if(avgCount[SID] > NSTARTSAMPLES) {
+			wstage[SID] = AGING;
+		}
+		/* no break */
+		// * no break is intentional * fall through to mature's code
+
+	//----------------------------------------------------------
+		// matures code
+
+		// decide how loose to make the edge boundary
+		// decide how "big" our sample count is
+		log2of_sampleCount[SID] = roughLog2Lookup(avgCount[SID]);
+		// scale down our boundary based on "bigness" of sample count
+		THRESHHOLD[SID] 		= BASE_THRESH[SID] * (8 - log2of_sampleCount[SID]);
+
+
+		// decide if newest sample is past boundary
+		obsGrams[SID] = convertGrams(obsWeight[SID], avgWeight[SID], SID);
+		if(obsGrams[SID] >= THRESHHOLD[SID] ||
+		  -obsGrams[SID] >= THRESHHOLD[SID] ) {
+			rezeroCount[SID] += 1;
+		} else {
+
+			/// only add to sum if within threshold, else reset
+			// collect more data (collected above)
+			sum[SID] += obsWeight[SID];
+
+			// smooth out data (avgWeight doubles as our "zeroWeight")
+			avgWeight[SID] = sum[SID] / ++avgCount[SID];
+		}
+
+		// zeroize
+		if(rezeroCount[SID] > ZERO_TRIGGER_COUNT) {
+			wstage[SID] = NEW;
+		}
+
+	}
+
+	//----------------------------------------------------------
+	if(wstage[SID] == MATURE) { // just edge detect for new weights
+
+		// decide how loose to make the edge boundary
+		// decide how "big" our sample count is
+		log2of_sampleCount[SID] = roughLog2Lookup(avgCount[SID]);
+		// scale down our boundary based on "bigness" of sample count
+		THRESHHOLD[SID] 		= BASE_THRESH[SID] * (8 - log2of_sampleCount[SID]);
+
+		// decide if newest sample is past boundary
+		obsGrams[SID] = convertGrams(obsWeight[SID], avgWeight[SID], SID);
+		if(obsGrams[SID] >= THRESHHOLD[SID] ||
+		  -obsGrams[SID] >= THRESHHOLD[SID] ) {
+			rezeroCount[SID] += 1;
+		}
+
+		// zeroize
+		if(rezeroCount[SID] > ZERO_TRIGGER_COUNT) {
+			wstage[SID] = NEW;
+			#ifdef WEIGHTDEBUG
+				HAL_GPIO_WritePin(BONUS_GPIO_Port, BONUS_Pin, GPIO_PIN_SET);
+				HAL_Delay(200);
+				HAL_GPIO_WritePin(BONUS_GPIO_Port, BONUS_Pin, GPIO_PIN_RESET);
+			#endif
+
+		}
+
+	}
+}
+
+
+/* ================================================================ *\
+ *
+ *	convertG:
+ *
+ *		function to fill debug LCD character array with gram value
+ */
+//----------------------------------------------------------
+void convertG(int32_t gVal, enum sensorID which) {
+	int i, digit;
+	char c;
+	int cbuf = (gVal < 0)? -gVal: gVal;
+	char * gbuffer = (which == ONE) ? gbuffer1 : gbuffer2;
+	for(i = 0; i < 3; ++i) {
+			digit = cbuf % 10;
+			switch(digit) {
+				case 0: c = '0'; break;
+				case 1: c = '1'; break;
+				case 2: c = '2'; break;
+				case 3: c = '3'; break;
+				case 4: c = '4'; break;
+				case 5: c = '5'; break;
+				case 6: c = '6'; break;
+				case 7: c = '7'; break;
+				case 8: c = '8'; break;
+				case 9: c = '9'; break;
+				default: c = 'X';
+			}
+			gbuffer[7-i] = c;
+			cbuf = cbuf / 10;
+		}
+		gbuffer[4] = '.';
+		for(i = 3; i < 7; ++i) {
+				digit = cbuf % 10;
+				switch(digit) {
+					case 0: c = '0'; break;
+					case 1: c = '1'; break;
+					case 2: c = '2'; break;
+					case 3: c = '3'; break;
+					case 4: c = '4'; break;
+					case 5: c = '5'; break;
+					case 6: c = '6'; break;
+					case 7: c = '7'; break;
+					case 8: c = '8'; break;
+					case 9: c = '9'; break;
+					default: c = 'X';
+				}
+				gbuffer[7-1-i] = c;
+				cbuf = cbuf / 10;
+			}
+		for(i = 0; i < 3; ++i) {
+			if(gbuffer[i] != '0')
+				break;
+			gbuffer[i] = ' ';
+		}
+		if(gVal < 0) {
+			if(i > 0) gbuffer[i-1] = '-';
+		}
+		gbuffer[ 8] = ' ';
+		gbuffer[ 9] = 'g';
+		gbuffer[10] = ' ';
+		gbuffer[11] = '\0';
+
+}
+
+
+/* ================================================================ *\
+ *
+ *	convertW:
+ *
+ *		function to fill debug LCD character array with weight value
+ */
+//----------------------------------------------------------
+void convertW(int32_t wVal, enum sensorID which) {
 	int i, digit;
 	char c;
 	int cbuf = wVal;
+	char * wbuffer = (which == ONE) ? wbuffer1: wbuffer2;
 	for(i = 0; i < 6; ++i) {
 		digit = cbuf % 16;
 		switch(digit) {
@@ -164,7 +514,7 @@ void convertW(int32_t wVal) {
 			case 0xD: c = 'D'; break;
 			case 0xE: c = 'E'; break;
 			case 0xF: c = 'F'; break;
-			default: 'X';
+			default: c = 'X';
 		}
 		wbuffer[2+5-i] = c;
 		cbuf = cbuf >> 4;
@@ -172,6 +522,270 @@ void convertW(int32_t wVal) {
 	wbuffer[0] = '0';
 	wbuffer[1] = 'x';
 }
+
+
+/* ================================================================ *\
+ *
+ *	convertGrams:
+ *
+ *		numeric calculation to convert bit value back from load
+ *		amplifier HX711 to an actuall gram amount in miligrams
+ *		calibration data is sensor specific and toggled with
+ *		enum sensorID s
+ *
+ *		gram value is relative to the zeroWeight given (our running
+ *		average thus far). This relative number can be negative
+ */
+//----------------------------------------------------------
+uint32_t convertGrams(uint32_t wread, uint32_t zero, enum sensorID s) {
+	int32_t offs = wread - zero;
+	int32_t rval = 0;
+	if(s == TWO) {
+		//int32_t bpmv = 460225;//460225.43352;
+		//int32_t gpmv = 390;//390.9304;
+		//int32_t conversion = 460225/390930;//bits per miligram
+		//int32_t conversion = 1177333;
+		//sensor2 in port5 :: rval = (offs * 217) >> 8;
+		//rval = (offs * 157) >> 9;
+		rval = (offs * 627) >> 11;
+		//0x0136FF;
+		//460225.43352601156069364161849711
+	} else if (s == ONE) {
+		//rval = (offs * 41) >> 15;
+		rval = (offs * 568) >> 11;
+	}
+	return rval;
+}
+
+/* ================================================================ *\
+ *
+ *	weightToLCD: selects which lines to put on the debug lcd
+ */
+//----------------------------------------------------------
+void weightToLCD(enum sensorID first, enum sensorID second) {
+	send_i(LCDCLR);
+	chgline(LINE1);
+	debugWeight(first);
+	chgline(LINE2);
+	debugWeight(second);
+}
+
+/* ================================================================ *\
+ *
+ *	debugWeight: prints which which line is commanded by "s"
+ * 	can be the hex value [RAWi:_0xNNNNNN__]
+ *  or the actual weight [SENi:_0000.000_g]
+ */
+//----------------------------------------------------------
+void debugWeight(enum sensorID s) {
+	switch(s) {
+	case HEX1:
+		lcdprint("RAW1: ");
+		lcdprint(wbuffer1);
+		break;
+	case HEX2:
+		lcdprint("RAW2: ");
+		lcdprint(wbuffer2);
+		break;
+	case ONE:
+		lcdprint("SEN1: ");
+		lcdprint(gbuffer1);
+		break;
+	case TWO:
+		lcdprint("SEN2: ");
+		lcdprint(gbuffer2);
+		break;
+	}
+}
+
+/* ================================================================ *\
+ *
+ *	roughLog2Lookup:
+ *
+ *		a "quick and dirty" log2 function optimized for values
+ *		below 256. --will still work for larger values
+ */
+//----------------------------------------------------------
+uint8_t roughLog2Lookup(uint32_t val) {
+	// if under 256, binary search to the closest log2
+	if(val < 256)  {
+		if(val < 16)  {
+			if(val < 4)  {
+				if(val < 2) return 0;
+				return 1;
+			}
+			if(val < 8) return 2;
+			return 3;
+		}
+		if(val < 128) {
+			if(val < 64) {
+				if(val < 32) return 4;
+				return 5;
+			}
+			return 6;
+		}
+		return 7;
+	}
+	else if(val == 256) return 8;
+
+	// else finally check from MSB down and break
+	uint8_t rval = 31;
+	uint32_t check;
+	for(check = 0x80000000; check > rval; check >>= 1) {--rval;}
+	return rval;
+}
+
+
+
+
+/* ================================================================ *\
+ *	clock5: clocks the SPI5 line manually   */
+//----------------------------------------------------------
+void clock5() {
+	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
+						LD0_SPI5_CLK_Pin,
+						GPIO_PIN_SET);
+	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
+						LD0_SPI5_CLK_Pin,
+						GPIO_PIN_RESET);
+}
+/* ================================================================ *\
+ *	clock2: clocks the SPI2 line manually   */
+//----------------------------------------------------------
+void clock2() {
+	HAL_GPIO_WritePin(	LD1_SPI2_CLK_GPIO_Port,
+						LD1_SPI2_CLK_Pin,
+						GPIO_PIN_SET);
+	HAL_GPIO_WritePin(	LD1_SPI2_CLK_GPIO_Port,
+						LD1_SPI2_CLK_Pin,
+						GPIO_PIN_RESET);
+}
+
+/* ================================================================ *\
+ *	read5: reads the input off the SPI5 line manually   */
+//----------------------------------------------------------
+void read5() {
+	GPIO_PinState bit  = HAL_GPIO_ReadPin(	LD0_SPI5_MISO_GPIO_Port,
+											LD0_SPI5_MISO_Pin);
+	dataBuffer5 	   = dataBuffer5 << 1;
+	dataBuffer5       |= (bit == GPIO_PIN_SET) ? 1U : 0U;
+}
+
+/* ================================================================ *\
+ *	read2: reads the input off the SPI2 line manually   */
+//----------------------------------------------------------
+void read2() {
+	GPIO_PinState bit  = HAL_GPIO_ReadPin(	LD1_SPI2_MISO_GPIO_Port,
+											LD1_SPI2_MISO_Pin);
+	dataBuffer2 	   = dataBuffer2 << 1;
+	dataBuffer2       |= (bit == GPIO_PIN_SET) ? 1U : 0U;
+}
+
+/* ================================================================ *\
+ *	spinwaiting: bogus wait function for 15+ clock cycles  */
+//----------------------------------------------------------
+void spinwaiting(uint8_t loops) {
+	int i, j;
+	for(i = 0; i < loops; ++i) {
+		for(j = 0; j < 10; ++j) {}
+	}
+}
+
+/* ================================================================ *\
+ *
+ *	driver_LD5:
+ *
+ *		manually bitbangs the SPI5 port to communicate with the
+ *		load sensor. 25 bits
+ */
+//----------------------------------------------------------
+uint32_t driver_LD5() {
+	// check for data ready
+    GPIO_PinState ps;
+    int timeOut = 0;
+    do { ps = HAL_GPIO_ReadPin( LD0_SPI5_MISO_GPIO_Port,
+    							LD0_SPI5_MISO_Pin);
+    } while((ps == GPIO_PIN_SET) && (timeOut++ < 10000));
+    if(timeOut >= 10000) { return(0); }
+
+    HAL_GPIO_TogglePin(F_RCLK_GPIO_Port, F_RCLK_Pin);
+    // shift 25 bits
+    int bit;
+ 	dataBuffer5 = 0;
+	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
+								LD0_SPI5_CLK_Pin,
+								GPIO_PIN_RESET);
+	//spinwaiting(2);
+	for(bit = 0; bit < 25; ++bit) {
+		//clock5();
+		HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
+							LD0_SPI5_CLK_Pin,
+							GPIO_PIN_SET);
+		//spinwaiting(1);
+		read5();
+		//spinwaiting(1);
+		HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
+									LD0_SPI5_CLK_Pin,
+									GPIO_PIN_RESET);
+		//spinwaiting(2);
+	}
+	//spinwaiting(2);
+
+	// reset clock
+	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
+								LD0_SPI5_CLK_Pin,
+								GPIO_PIN_RESET);
+    return(dataBuffer5);
+}
+
+
+/* ================================================================ *\
+ *
+ *	driver_LD2:
+ *
+ *		manually bitbangs the SPI2 port to communicate with the
+ *		load sensor. 25 bits
+ */
+//----------------------------------------------------------
+uint32_t driver_LD2() {
+	// check for data ready
+    GPIO_PinState ps;
+    int timeOut = 0;
+    do { ps = HAL_GPIO_ReadPin( LD1_SPI2_MISO_GPIO_Port,
+    							LD1_SPI2_MISO_Pin);
+    } while((ps == GPIO_PIN_SET) && (timeOut++ < 32000));
+    if(timeOut >= 32000) { return(0); }
+
+    HAL_GPIO_TogglePin(F_RCLK_GPIO_Port, F_RCLK_Pin);
+    // shift 25 bits
+    int bit;
+ 	dataBuffer2 = 0;
+	HAL_GPIO_WritePin(	LD1_SPI2_CLK_GPIO_Port,
+								LD1_SPI2_CLK_Pin,
+								GPIO_PIN_RESET);
+	//spinwaiting(2);
+	for(bit = 0; bit < 25; ++bit) {
+		//clock2();
+		HAL_GPIO_WritePin(	LD1_SPI2_CLK_GPIO_Port,
+							LD1_SPI2_CLK_Pin,
+							GPIO_PIN_SET);
+		//spinwaiting(1);
+		read2();
+		//spinwaiting(1);
+		HAL_GPIO_WritePin(	LD1_SPI2_CLK_GPIO_Port,
+									LD1_SPI2_CLK_Pin,
+									GPIO_PIN_RESET);
+		//spinwaiting(2);
+	}
+	//spinwaiting(2);
+
+	// reset clock
+	HAL_GPIO_WritePin(	LD1_SPI2_CLK_GPIO_Port,
+								LD1_SPI2_CLK_Pin,
+								GPIO_PIN_RESET);
+    return(dataBuffer2);
+}
+
 
 /** System Clock Configuration
 */
@@ -329,20 +943,28 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, F_RCLK_Pin|SANITY_LIGHT_Pin|LCD_E_Pin|LCD_RW_Pin 
+  HAL_GPIO_WritePin(GPIOC, F_RCLK_Pin|BONUS_Pin|LCD_E_Pin|LCD_RW_Pin
                           |LCD_RS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LD0_SPI5_CLK_Pin|BONUS_Pin
+		  	  	  	  	  	  	  	  	  , GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : F_RCLK_Pin SANITY_LIGHT_Pin LCD_E_Pin LCD_RW_Pin 
+
+  /*Configure GPIO pins : F_RCLK_Pin BONUS_Pin LCD_E_Pin LCD_RW_Pin
                            LCD_RS_Pin */
-  GPIO_InitStruct.Pin = F_RCLK_Pin|SANITY_LIGHT_Pin|LCD_E_Pin|LCD_RW_Pin 
+  GPIO_InitStruct.Pin = F_RCLK_Pin|BONUS_Pin|LCD_E_Pin|LCD_RW_Pin
                           |LCD_RS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  GPIO_InitStruct.Pin = LD1_SPI2_MISO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  GPIO_InitStruct.Pin = LD0_SPI5_CLK_Pin;
+
+  GPIO_InitStruct.Pin = LD1_SPI2_CLK_Pin|LD0_SPI5_CLK_Pin|BONUS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -356,68 +978,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void clock5() {
-	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
-						LD0_SPI5_CLK_Pin,
-						GPIO_PIN_SET);
-	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
-						LD0_SPI5_CLK_Pin,
-						GPIO_PIN_RESET);
-}
-
-void read5() {
-	GPIO_PinState bit  = HAL_GPIO_ReadPin(	LD0_SPI5_MISO_GPIO_Port,
-											LD0_SPI5_MISO_Pin);
-	dataBuffer5 	   = dataBuffer5 << 1;
-	dataBuffer5       |= (bit == GPIO_PIN_SET) ? 1U : 0U;
-}
-
-void spinwaiting(uint8_t loops) {
-	int i, j;
-	for(i = 0; i < loops; ++i) {
-		for(j = 0; j < 10; ++j) {}
-	}
-}
-
-uint32_t driver_LD5() {
-	// check for data ready
-    GPIO_PinState ps;
-    int timeOut = 0;
-    do { ps = HAL_GPIO_ReadPin( LD0_SPI5_MISO_GPIO_Port,
-    							LD0_SPI5_MISO_Pin);
-    } while((ps == GPIO_PIN_SET) && (timeOut++ < 10000));
-    if(timeOut >= 10000) { return(0); }
-
-    HAL_GPIO_TogglePin(F_RCLK_GPIO_Port, F_RCLK_Pin);
-    // shift 25 bits
-    int bit;
- 	dataBuffer5 = 0;
-	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
-								LD0_SPI5_CLK_Pin,
-								GPIO_PIN_RESET);
-	//spinwaiting(2);
-	for(bit = 0; bit < 25; ++bit) {
-		//clock5();
-		HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
-							LD0_SPI5_CLK_Pin,
-							GPIO_PIN_SET);
-		//spinwaiting(1);
-		read5();
-		//spinwaiting(1);
-		HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
-									LD0_SPI5_CLK_Pin,
-									GPIO_PIN_RESET);
-		//spinwaiting(2);
-	}
-	//spinwaiting(2);
-
-	// reset clock
-	HAL_GPIO_WritePin(	LD0_SPI5_CLK_GPIO_Port,
-								LD0_SPI5_CLK_Pin,
-								GPIO_PIN_RESET);
-    return(dataBuffer5);
-}
-
 
 
 /*
@@ -430,7 +990,6 @@ uint32_t driver_LD5() {
 ***********************************************************************
 */
 void shiftout(char x){
-    int a;
     HAL_GPIO_WritePin(F_RCLK_GPIO_Port, F_RCLK_Pin, GPIO_PIN_RESET);
     // read something to see if transmit data register is empty
     HAL_SPI_Transmit(&hspi1, &x, 1, 200); // write 1 character
@@ -449,8 +1008,6 @@ void shiftout(char x){
 */
 void lcdwait(){
     // function to delay for approx. 2 ms
-    volatile int c;
-    volatile int test = 0;
     //for (c = 0; c < 5000; c++){
     //    // loop to waste 2 ms - need to figure out timing
     //    test++;

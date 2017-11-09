@@ -58,7 +58,9 @@ TIM_HandleTypeDef htim9;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_SPI2_Init(void);
 static void MX_SPI5_Init(void);
+static void MX_TIM11_Init(void);
 static void MX_TIM9_Init(void);
 
 /* USER CODE BEGIN PFP */
@@ -66,11 +68,14 @@ static void MX_TIM9_Init(void);
 void read5(void);
 void clock5(void);
 uint32_t driver_LD5(void);
+uint32_t convertGrams(uint32_t, uint32_t);
+void convertG(int32_t);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
 uint32_t dataBuffer5;
-char wbuffer[17];
+char wbuffer[10];
+char gbuffer[10];
 /* USER CODE END 0 */
 
 int main(void)
@@ -103,8 +108,9 @@ int main(void)
   MX_TIM9_Init();
 
   /* USER CODE BEGIN 2 */
+
   HAL_Delay(100);
-  HAL_GPIO_TogglePin(SANITY_LIGHT_GPIO_Port, SANITY_LIGHT_Pin);
+  HAL_GPIO_TogglePin(BONUS_GPIO_Port, BONUS_Pin);
   //HAL_GPIO_WritePin(LCD_E_GPIO_Port, LCD_E_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LCD_RW_GPIO_Port, LCD_RW_Pin, GPIO_PIN_RESET);
   send_i(LCDON);
@@ -116,29 +122,88 @@ int main(void)
 
   wbuffer[0] = "0";
   wbuffer[1] = "x";
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   uint32_t weightVal = 0;
+  uint32_t sum = 0;
+  int zeroi;
+  int32_t zero;
+  int32_t grams;
+  HAL_GPIO_TogglePin(BONUS_GPIO_Port, BONUS_Pin);
+  zeroi = 0;
   while (1)
   {
-	  HAL_Delay(1000);
-	  //HAL_GPIO_TogglePin(SANITY_LIGHT_GPIO_Port, SANITY_LIGHT_Pin);
+	  //HAL_Delay(500);
+	  // output raw weight reading
 	  send_i(LCDCLR);
 	  chgline(LINE1);
-	  lcdprint("load cell reads:");
-	  chgline(LINE2);
+	  lcdprint("SENS2: ");
 	  lcdprint(wbuffer);
-	  //str[0] += i++;
 	  //HAL_SPI_Receive(&hspi5, &weightVal, 0x0003u, 200); // write 3 character
-	  //HAL_SPI_Receive(hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
-	  weightVal = driver_LD5();
+	  sum = 0;
+	  for(i = 0; i < 32; ++i) {
+		  weightVal = driver_LD5();
+		  sum += weightVal;
+	  }
+
+	  // output interpreted weight
+	  chgline(LINE2);
+	  lcdprint("WEIGHT: ");
+	  zeroi += 1;
+	  if(zeroi == 10) {
+		  HAL_GPIO_TogglePin(BONUS_GPIO_Port, BONUS_Pin);
+		  zero = weightVal;
+	  }
+	  grams = convertGrams(weightVal, zero);
+	  // averages the data
+	  weightVal = sum >> 5;
 	  convertW(weightVal);
+	  convertG(grams);
   }
   /* USER CODE END WHILE */
   /* USER CODE BEGIN 3 */
 
   /* USER CODE END 3 */
 
+}
+
+uint32_t convertGrams(uint32_t wread, uint32_t zero) {
+	int32_t offs = wread - zero;
+	int32_t conversion = 20;
+	return (offs * conversion);
+}
+
+void convertG(int32_t gVal) {
+	int i, digit;
+	char c;
+	int cbuf = gVal;
+	for(i = 0; i < 7; ++i) {
+			digit = cbuf % 10;
+			switch(digit) {
+				case 0: c = '0'; break;
+				case 1: c = '1'; break;
+				case 2: c = '2'; break;
+				case 3: c = '3'; break;
+				case 4: c = '4'; break;
+				case 5: c = '5'; break;
+				case 6: c = '6'; break;
+				case 7: c = '7'; break;
+				case 8: c = '8'; break;
+				case 9: c = '9'; break;
+				//case 0xA: c = 'A'; break;
+				//case 0xB: c = 'B'; break;
+				//case 0xC: c = 'C'; break;
+				//case 0xD: c = 'D'; break;
+				//case 0xE: c = 'E'; break;
+				//case 0xF: c = 'F'; break;
+				default: c = 'X';
+			}
+			gbuffer[2+6-i] = c;
+			cbuf = cbuf >> 4;
+		}
+		gbuffer[ 9] = ' ';
+		gbuffer[10] = 'g';
 }
 
 void convertW(int32_t wVal) {
@@ -164,7 +229,7 @@ void convertW(int32_t wVal) {
 			case 0xD: c = 'D'; break;
 			case 0xE: c = 'E'; break;
 			case 0xF: c = 'F'; break;
-			default: 'X';
+			default: c = 'X';
 		}
 		wbuffer[2+5-i] = c;
 		cbuf = cbuf >> 4;
@@ -329,12 +394,15 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, F_RCLK_Pin|SANITY_LIGHT_Pin|LCD_E_Pin|LCD_RW_Pin 
+  HAL_GPIO_WritePin(GPIOC, F_RCLK_Pin|BONUS_Pin|LCD_E_Pin|LCD_RW_Pin
                           |LCD_RS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LD0_SPI5_CLK_Pin|BONUS_Pin
+		  	  	  	  	  	  	  	  	  , GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : F_RCLK_Pin SANITY_LIGHT_Pin LCD_E_Pin LCD_RW_Pin 
+
+  /*Configure GPIO pins : F_RCLK_Pin BONUS_Pin LCD_E_Pin LCD_RW_Pin
                            LCD_RS_Pin */
-  GPIO_InitStruct.Pin = F_RCLK_Pin|SANITY_LIGHT_Pin|LCD_E_Pin|LCD_RW_Pin 
+  GPIO_InitStruct.Pin = F_RCLK_Pin|BONUS_Pin|LCD_E_Pin|LCD_RW_Pin
                           |LCD_RS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -342,7 +410,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
 
-  GPIO_InitStruct.Pin = LD0_SPI5_CLK_Pin;
+  GPIO_InitStruct.Pin = LD0_SPI5_CLK_Pin|BONUS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
