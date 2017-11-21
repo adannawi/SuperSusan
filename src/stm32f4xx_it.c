@@ -31,14 +31,25 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx_hal.h"
 #include "stm32f4xx.h"
 #include "stm32f4xx_it.h"
-#include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
 
 /* USER CODE BEGIN 0 */
+#include "main.h"
+#include "buttons.h"
+int irqFlag = 0;
+// external global variables
+extern enum DEBOUNCE select_isr;
+extern  select_db;
+extern enum DEBOUNCE back_isr;
+extern uint32_t back_db;
+//extern uint8_t menu_index;S
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern TIM_HandleTypeDef htim6;
+extern TIM_HandleTypeDef htim11;
 
 /******************************************************************************/
 /*            Cortex-M4 Processor Interruption and Exception Handlers         */ 
@@ -183,21 +194,79 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+* @brief This function handles EXTI line[9:5] interrupts.
+*/
+void EXTI9_5_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI9_5_IRQn 0 */
+  if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_5)){
+	  irqFlag = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11);
+
+  } else{
+	  irqFlag = !HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11);
+  }
+
+  // CHECK ROTSW
+  if(HAL_GPIO_ReadPin(F_BACK_GPIO_Port, F_BACK_Pin)) {
+  	  back_isr = DEBOUNCE_START;
+  }
+
+  /* USER CODE END EXTI9_5_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_5);
+  /* USER CODE BEGIN EXTI9_5_IRQn 1 */
+  HAL_GPIO_WritePin(BONUS_GPIO_Port, BONUS_Pin, GPIO_PIN_SET);
+  /* USER CODE END EXTI9_5_IRQn 1 */
+}
+
+/**
+* @brief This function handles TIM1 trigger and commutation interrupts and TIM11 global interrupt.
+*/
+void TIM1_TRG_COM_TIM11_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 0 */
+  //menuScreen_period_ellapsed = true;
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim11);
+  /* USER CODE BEGIN TIM1_TRG_COM_TIM11_IRQn 1 */
+
+  /* USER CODE END TIM1_TRG_COM_TIM11_IRQn 1 */
+}
+
+/**
 * @brief This function handles EXTI line[15:10] interrupts.
 */
 void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-  irqFlag = 0;
 
   /* USER CODE END EXTI15_10_IRQn 0 */
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
-  irqFlag = 1;
+
   /* USER CODE END EXTI15_10_IRQn 1 */
 }
 
-/* USER CODE BEGIN 1 */
+/**
+* @brief This function handles TIM6 global interrupt and DAC channel underrun error interrupt.
+*/
+void TIM6_DAC_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_DAC_IRQn 0 */
+  if(select_isr == DEBOUNCE_PENDING) {
+	  select_isr = DEBOUNCE_SET;
 
+  }
+  if(back_isr == DEBOUNCE_PENDING) {
+  	  back_isr = DEBOUNCE_SET;
+  }
+  /* USER CODE END TIM6_DAC_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_DAC_IRQn 1 */
+  HAL_GPIO_WritePin(BONUS_GPIO_Port, BONUS_Pin, GPIO_PIN_RESET);
+  HAL_TIM_Base_Stop(&htim6);
+  /* USER CODE END TIM6_DAC_IRQn 1 */
+}
+
+/* USER CODE BEGIN 1 */
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

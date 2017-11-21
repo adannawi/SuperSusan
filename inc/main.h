@@ -41,54 +41,88 @@
   /* Includes ------------------------------------------------------------------*/
 
 /* USER CODE BEGIN Includes */
-
+#include <inttypes.h>
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
+#define F_CLK_COUNT_PERIOD 50
+#define F_CLK_PRESCALER 160
+#define RGB_LED_PRESCALER 5
+#define RGB_LED_PERIOD 32
+#define RGB_LED_DEFAULT_R 12
+#define RGB_LED_DEFAULT_G 10
+#define RGB_LED_DEFAULT_B 9
+#define DEBOUNCE_PRESCALER 8000
+#define DEBOUNCE_N_HALF_MS_WAIT 100
 
-#define F_RCLK_Pin GPIO_PIN_13
+#define F_NWR_Pin GPIO_PIN_13
+#define F_NWR_GPIO_Port GPIOC
+#define F_NRST_Pin GPIO_PIN_14
+#define F_NRST_GPIO_Port GPIOC
+#define F_NCS1_Pin GPIO_PIN_15
+#define F_NCS1_GPIO_Port GPIOC
+#define OSC_IN_Pin GPIO_PIN_0
+#define OSC_IN_GPIO_Port GPIOH
+#define OSC_OUT_Pin GPIO_PIN_1
+#define OSC_OUT_GPIO_Port GPIOH
+#define F_A0_Pin GPIO_PIN_0
+#define F_A0_GPIO_Port GPIOC
+#define F_NCS2_Pin GPIO_PIN_1
+#define F_NCS2_GPIO_Port GPIOC
+#define F_NRD_Pin GPIO_PIN_2
+#define F_NRD_GPIO_Port GPIOC
+#define F_RCLK_Pin GPIO_PIN_3
 #define F_RCLK_GPIO_Port GPIOC
-#define SANITY_LIGHT_Pin GPIO_PIN_0
-#define SANITY_LIGHT_GPIO_Port GPIOC
-#define LCD_E_Pin GPIO_PIN_1
-#define LCD_E_GPIO_Port GPIOC
-#define LCD_RW_Pin GPIO_PIN_2
-#define LCD_RW_GPIO_Port GPIOC
-#define LCD_RS_Pin GPIO_PIN_3
-#define LCD_RS_GPIO_Port GPIOC
+#define F_PWR_LED_R_Pin GPIO_PIN_0
+#define F_PWR_LED_R_GPIO_Port GPIOA
+#define F_WIFI_LED_B_Pin GPIO_PIN_1
+#define F_WIFI_LED_B_GPIO_Port GPIOA
+#define F_WIFI_LED_G_Pin GPIO_PIN_2
+#define F_WIFI_LED_G_GPIO_Port GPIOA
+#define F_PWR_LED_G_Pin GPIO_PIN_3
+#define F_PWR_LED_G_GPIO_Port GPIOA
 #define SPI_CLK_Pin GPIO_PIN_5
 #define SPI_CLK_GPIO_Port GPIOA
 #define SPI_MISO_Pin GPIO_PIN_6
 #define SPI_MISO_GPIO_Port GPIOA
 #define SPI_MOSI_Pin GPIO_PIN_7
 #define SPI_MOSI_GPIO_Port GPIOA
+#define F_WIFI_LED_R_Pin GPIO_PIN_4
+#define F_WIFI_LED_R_GPIO_Port GPIOC
+#define F_PWR_LED_B_Pin GPIO_PIN_5
+#define F_PWR_LED_B_GPIO_Port GPIOC
 #define LD0_SPI5_CLK_Pin GPIO_PIN_0
 #define LD0_SPI5_CLK_GPIO_Port GPIOB
-#define WIFI_IRQ_Pin GPIO_PIN_10
-#define WIFI_IRQ_GPIO_Port GPIOB
-#define WIFI_IRQ_EXTI_IRQn EXTI15_10_IRQn
-#define shark_Pin GPIO_PIN_10
-#define shark_GPIO_Port GPIOA
-#define alligator_Pin GPIO_PIN_11
-#define alligator_GPIO_Port GPIOA
+#define F_CS_DP_Pin GPIO_PIN_1
+#define F_CS_DP_GPIO_Port GPIOB
+#define BONUS_Pin GPIO_PIN_12
+#define BONUS_GPIO_Port GPIOB
+#define LD1_SPI2_CLK_Pin GPIO_PIN_13
+#define LD1_SPI2_CLK_GPIO_Port GPIOB
+#define LD1_SPI2_MISO_Pin GPIO_PIN_14
+#define LD1_SPI2_MISO_GPIO_Port GPIOB
 #define LD0_SPI5_MISO_Pin GPIO_PIN_12
 #define LD0_SPI5_MISO_GPIO_Port GPIOA
+#define SWDIO_Pin GPIO_PIN_13
+#define SWDIO_GPIO_Port GPIOA
+#define SWCLK_Pin GPIO_PIN_14
+#define SWCLK_GPIO_Port GPIOA
+#define F_ROTB_Pin GPIO_PIN_11
+#define F_ROTB_GPIO_Port GPIOB
+#define F_ROTB_EXTI_IRQn EXTI15_10_IRQn
+#define SWO_Pin GPIO_PIN_3
+#define SWO_GPIO_Port GPIOB
+#define F_ROTSW_Pin GPIO_PIN_4
+#define F_ROTSW_GPIO_Port GPIOB
+#define F_ROTA_Pin GPIO_PIN_5
+#define F_ROTA_GPIO_Port GPIOB
+#define F_ROTA_EXTI_IRQn EXTI9_5_IRQn
+#define F_BACK_Pin GPIO_PIN_8
+#define F_BACK_GPIO_Port GPIOB
+#define F_CLK_Pin GPIO_PIN_9
+#define F_CLK_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-#define CURMOV  0xFE
-#define LCDON   0x0F
-#define TWOLINE 0x38
-#define LCDCLR  0x01
-#define LINE1   0x80
-#define LINE2   0xC0
-void lcdprint(char str[]);
-void print_c(char x);
-void chgline(char x);
-void send_i(char x);
-void send_byte(char x);
-void lcdwait();
-void shiftout(char x);
-extern int irqFlag;
 /* USER CODE END Private defines */
 
 void _Error_Handler(char *, int);

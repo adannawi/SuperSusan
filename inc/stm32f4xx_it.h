@@ -40,7 +40,7 @@
 #endif 
 
 /* Includes ------------------------------------------------------------------*/
-#include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h"
+#include "stm32f4xx_hal.h"
 #include "main.h"
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
@@ -56,7 +56,10 @@ void SVC_Handler(void);
 void DebugMon_Handler(void);
 void PendSV_Handler(void);
 void SysTick_Handler(void);
+void EXTI9_5_IRQHandler(void);
+void TIM1_TRG_COM_TIM11_IRQHandler(void);
 void EXTI15_10_IRQHandler(void);
+void TIM6_DAC_IRQHandler(void);
 
 #ifdef __cplusplus
 }

@@ -105,7 +105,7 @@
   *        (when HSE is used as system clock source, directly or through the PLL).  
   */
 #if !defined  (HSE_VALUE) 
-  #define HSE_VALUE    ((uint32_t)25000000U) /*!< Value of the External oscillator in Hz */
+  #define HSE_VALUE    ((uint32_t)16000000U) /*!< Value of the External oscillator in Hz */
 #endif /* HSE_VALUE */
 
 #if !defined  (HSE_STARTUP_TIMEOUT)
@@ -241,19 +241,19 @@
   */
 
 #ifdef HAL_RCC_MODULE_ENABLED
-  #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_rcc.h"
+  #include "stm32f4xx_hal_rcc.h"
 #endif /* HAL_RCC_MODULE_ENABLED */
 
 #ifdef HAL_GPIO_MODULE_ENABLED
-  #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_gpio.h"
+  #include "stm32f4xx_hal_gpio.h"
 #endif /* HAL_GPIO_MODULE_ENABLED */
 
 #ifdef HAL_DMA_MODULE_ENABLED
-  #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_dma.h"
+  #include "stm32f4xx_hal_dma.h"
 #endif /* HAL_DMA_MODULE_ENABLED */
    
 #ifdef HAL_CORTEX_MODULE_ENABLED
-  #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_cortex.h"
+  #include "stm32f4xx_hal_cortex.h"
 #endif /* HAL_CORTEX_MODULE_ENABLED */
 
 #ifdef HAL_ADC_MODULE_ENABLED
@@ -289,7 +289,7 @@
 #endif /* HAL_ETH_MODULE_ENABLED */
 
 #ifdef HAL_FLASH_MODULE_ENABLED
-  #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_flash.h"
+  #include "stm32f4xx_hal_flash.h"
 #endif /* HAL_FLASH_MODULE_ENABLED */
  
 #ifdef HAL_SRAM_MODULE_ENABLED
@@ -333,7 +333,7 @@
 #endif /* HAL_LTDC_MODULE_ENABLED */
 
 #ifdef HAL_PWR_MODULE_ENABLED
- #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr.h"
+ #include "stm32f4xx_hal_pwr.h"
 #endif /* HAL_PWR_MODULE_ENABLED */
 
 #ifdef HAL_RNG_MODULE_ENABLED
@@ -357,11 +357,11 @@
 #endif /* HAL_MMC_MODULE_ENABLED */
 
 #ifdef HAL_SPI_MODULE_ENABLED
- #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h"
+ #include "stm32f4xx_hal_spi.h"
 #endif /* HAL_SPI_MODULE_ENABLED */
 
 #ifdef HAL_TIM_MODULE_ENABLED
- #include "../STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h"
+ #include "stm32f4xx_hal_tim.h"
 #endif /* HAL_TIM_MODULE_ENABLED */
 
 #ifdef HAL_UART_MODULE_ENABLED
